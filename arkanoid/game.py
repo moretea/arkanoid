@@ -55,6 +55,10 @@ ALT_FONT = os.path.join(os.path.dirname(__file__), 'data', 'fonts',
 
 # Initialise the pygame modules.
 pygame.init()
+pygame.joystick.init()
+
+joystick = pygame.joystick.Joystick(0)
+joystick.init()
 
 
 class Arkanoid:
@@ -146,6 +150,7 @@ class Arkanoid:
 
     def _create_screen(self):
         pygame.display.set_mode(DISPLAY_SIZE)
+        #pygame.display.set_mode(DISPLAY_SIZE, pygame.FULLSCREEN)
         pygame.display.set_caption(DISPLAY_CAPTION)
         pygame.mouse.set_visible(False)
         screen = pygame.display.get_surface()
@@ -608,12 +613,26 @@ class Game:
                 keys_down += 1
         self.handler_move_left = move_left
 
+        def move_joy_left(event):
+            nonlocal keys_down
+            if joystick.get_axis(0) < 0:
+                self.paddle.move_left()
+                keys_down += 1
+        self.handler_move_joy_left = move_joy_left
+
         def move_right(event):
             nonlocal keys_down
             if event.key == pygame.K_RIGHT:
                 self.paddle.move_right()
                 keys_down += 1
         self.handler_move_right = move_right
+
+        def move_joy_right(event):
+            nonlocal keys_down
+            if joystick.get_axis(0) > 0:
+                self.paddle.move_right()
+                keys_down += 1
+        self.handler_move_joy_right = move_joy_right
 
         def stop(event):
             nonlocal keys_down
@@ -623,6 +642,15 @@ class Game:
                 if keys_down == 0:
                     self.paddle.stop()
         self.handler_stop = stop
+
+        def joy_stop(event):
+            nonlocal keys_down
+            if joystick.get_axis(0) == 0:
+                if keys_down > 0:
+                    keys_down -= 1
+                if keys_down == 0:
+                    self.paddle.stop()
+        self.handler_joy_stop = joy_stop
 
     @property
     def ball(self):
@@ -687,6 +715,10 @@ class GameStartState(BaseState):
                                   self.game.handler_move_left,
                                   self.game.handler_move_right)
         receiver.register_handler(pygame.KEYUP, self.game.handler_stop)
+        receiver.register_handler(pygame.JOYAXISMOTION,
+                                  self.game.handler_move_joy_left,
+                                  self.game.handler_move_joy_right)
+        receiver.register_handler(pygame.JOYAXISMOTION, self.game.handler_joy_stop)
 
     def update(self):
         # TODO: implement the game intro sequence (animation).
